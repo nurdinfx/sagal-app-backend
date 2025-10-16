@@ -1,0 +1,31 @@
+{
+  "name": "gas-delivery-backend",
+  "version": "1.0.0",
+  "description": "Backend for Sagal Gas Delivery App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "production": "NODE_ENV=production node server.js",
+    "seed": "node seeds/seedAdmin.js"
+  },
+  "keywords": ["gas", "delivery", "api", "backend"],
+  "author": "Sagal Gas",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "socket.io": "^4.7.2",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^6.8.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
