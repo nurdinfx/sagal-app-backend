@@ -1,10 +1,17 @@
-const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'gas_delivery_secret', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
+};
+
+// Hardcoded admin user for now
+const adminUser = {
+  _id: 'admin-user-id',
+  username: 'admin',
+  password: 'admin123', // In real app, this should be hashed
+  role: 'admin'
 };
 
 exports.login = async (req, res) => {
@@ -19,32 +26,32 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if user exists and password is correct
-    const user = await User.findOne({ username }).select('+password');
-    
-    if (!user || !(await user.correctPassword(password, user.password))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Incorrect username or password'
+    // Simple authentication for admin
+    if (username === adminUser.username && password === adminUser.password) {
+      const token = signToken(adminUser._id);
+
+      return res.json({
+        success: true,
+        token,
+        data: {
+          id: adminUser._id,
+          username: adminUser.username,
+          role: adminUser.role
+        }
       });
     }
 
-    // If everything ok, send token to client
-    const token = signToken(user._id);
-
-    res.json({
-      success: true,
-      token,
-      data: {
-        id: user._id,
-        username: user.username,
-        role: user.role
-      }
+    // If credentials don't match
+    return res.status(401).json({
+      success: false,
+      message: 'Incorrect username or password'
     });
+
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Internal server error during login'
     });
   }
 };
@@ -68,17 +75,17 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gas_delivery_secret');
     
-    // Check if user still exists
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: 'The user belonging to this token no longer exists.'
-      });
+    // For now, just check if it's the admin token
+    if (decoded.id === adminUser._id) {
+      req.user = adminUser;
+      return next();
     }
 
-    req.user = currentUser;
-    next();
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token. Please log in again.'
+    });
+
   } catch (error) {
     res.status(401).json({
       success: false,
