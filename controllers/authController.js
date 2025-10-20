@@ -1,26 +1,10 @@
-const jwt = require('jsonwebtoken');
-
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'gas_delivery_secret', {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
-};
-
-// Hardcoded admin user for now
-const adminUser = {
-  _id: 'admin-user-id',
-  username: 'admin',
-  password: 'admin123', // In real app, this should be hashed
-  role: 'admin'
-};
-
+// SIMPLE VERSION - authController.js
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    console.log('🔐 Login attempt for:', username);
+    console.log('🔐 Login attempt:', { username });
 
-    // Check if username and password exist
     if (!username || !password) {
       return res.status(400).json({
         success: false,
@@ -28,73 +12,31 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Simple authentication for admin
-    if (username === adminUser.username && password === adminUser.password) {
-      const token = signToken(adminUser._id);
-
-      console.log('✅ Login successful for admin');
+    // Simple admin authentication
+    if (username === 'admin' && password === 'admin123') {
+      console.log('✅ Login successful');
       return res.json({
         success: true,
-        token,
-        data: {
-          id: adminUser._id,
-          username: adminUser.username,
-          role: adminUser.role
+        message: 'Login successful',
+        token: 'admin-token-' + Date.now(),
+        user: {
+          username: 'admin',
+          role: 'admin'
         }
       });
     }
 
-    console.log('❌ Invalid credentials for:', username);
-    // If credentials don't match
+    console.log('❌ Invalid credentials');
     return res.status(401).json({
       success: false,
-      message: 'Incorrect username or password'
+      message: 'Invalid credentials'
     });
 
   } catch (error) {
-    console.error('🚨 Login controller error:', error);
+    console.error('🚨 Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during login'
-    });
-  }
-};
-
-exports.protect = async (req, res, next) => {
-  try {
-    let token;
-    
-    // Get token from header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'You are not logged in. Please log in to get access.'
-      });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gas_delivery_secret');
-    
-    // For now, just check if it's the admin token
-    if (decoded.id === adminUser._id) {
-      req.user = adminUser;
-      return next();
-    }
-
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token. Please log in again.'
-    });
-
-  } catch (error) {
-    console.error('🚨 Token verification error:', error);
-    res.status(401).json({
-      success: false,
-      message: 'Invalid token. Please log in again.'
+      message: 'Server error: ' + error.message
     });
   }
 };
