@@ -11,6 +11,9 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
+
+// Fix for rate limit warning on Render
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // Environment configuration
@@ -22,12 +25,11 @@ const io = socketIo(server, {
   cors: {
     origin: isProduction 
       ? [
-          "https://yourapp.com", // Your production domain
-          "exp://yourapp.exp.host", // Your Expo app URL
-          "https://sagal-app.onrender.com", // Your Render domain
+          "https://sagal-app-backend.onrender.com", // Your actual backend domain
+          "http://localhost:8081", // YOUR FRONTEND - ADDED
           "exp://*.expo.dev", // All Expo development URLs
           "http://localhost:19006", // Expo web
-          "http://localhost:8081" // React Native debugger
+          "http://10.238.151.107:8081" // Your local network
         ]
       : [
           "http://localhost:8081",
@@ -71,13 +73,11 @@ const corsOptions = {
     
     const allowedOrigins = isProduction 
       ? [
-          "https://yourapp.com", // Your production frontend domain
-          "exp://yourapp.exp.host", // Your Expo app
-          "https://your-backend.railway.app", // Your backend domain
-          "https://sagal-app.onrender.com", // Your Render domain
+          "https://sagal-app-backend.onrender.com", // Your backend domain
+          "http://localhost:8081", // YOUR FRONTEND - ADDED
           "exp://*.expo.dev", // All Expo development URLs
           "http://localhost:19006", // Expo web
-          "http://localhost:8081" // React Native debugger
+          "http://10.238.151.107:8081" // Your local network
         ]
       : [
           "http://localhost:8081",
@@ -99,7 +99,8 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1 || 
         !origin || 
         origin.includes('expo.dev') ||
-        origin.includes('sagal-app.onrender.com')) {
+        origin.includes('localhost') || // ADDED - Allow all localhost
+        origin.includes('sagal-app-backend.onrender.com')) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -125,7 +126,7 @@ app.use((req, res, next) => {
   if (isProduction) {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - IP: ${req.ip}`);
   } else {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log(`${new Date().to-TypeString()} - ${req.method} ${req.url}`);
   }
   
   if (req.method === 'POST' && req.url === '/api/orders') {
