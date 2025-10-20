@@ -20,7 +20,11 @@ const io = socketIo(server, {
     origin: isProduction 
       ? [
           "https://yourapp.com", // Your production domain
-          "exp://yourapp.exp.host" // Your Expo app URL
+          "exp://yourapp.exp.host", // Your Expo app URL
+          "https://sagal-app.onrender.com", // Your Render domain
+          "exp://*.expo.dev", // All Expo development URLs
+          "http://localhost:19006", // Expo web
+          "http://localhost:8081" // React Native debugger
         ]
       : [
           "http://localhost:8081",
@@ -32,7 +36,8 @@ const io = socketIo(server, {
           "http://10.238.151.107:8081",
           "exp://10.238.151.107:8081",
           "http://10.238.151.107:19006",
-          "http://10.238.151.107:19000"
+          "http://10.238.151.107:19000",
+          "exp://*.expo.dev" // All Expo URLs
         ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
@@ -65,7 +70,11 @@ const corsOptions = {
       ? [
           "https://yourapp.com", // Your production frontend domain
           "exp://yourapp.exp.host", // Your Expo app
-          "https://your-backend.railway.app" // Your backend domain
+          "https://your-backend.railway.app", // Your backend domain
+          "https://sagal-app.onrender.com", // Your Render domain
+          "exp://*.expo.dev", // All Expo development URLs
+          "http://localhost:19006", // Expo web
+          "http://localhost:8081" // React Native debugger
         ]
       : [
           "http://localhost:8081",
@@ -79,12 +88,18 @@ const corsOptions = {
           "http://10.238.151.107:19000",
           "exp://10.238.151.107:8081",
           "http://10.238.151.107:5000",
-          "http://localhost:3000"
+          "http://localhost:3000",
+          "exp://*.expo.dev" // All Expo URLs
         ];
 
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    // Allow all Expo development URLs and your Render domain
+    if (allowedOrigins.indexOf(origin) !== -1 || 
+        !origin || 
+        origin.includes('expo.dev') ||
+        origin.includes('sagal-app.onrender.com')) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
