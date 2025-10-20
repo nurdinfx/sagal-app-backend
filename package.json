@@ -1,10 +1,13 @@
 {
-  "name": "gas-delivery-backend",
-  "version": "1.0.0",
+  "name": "sagal-app-backend",
+  "version": "1.0.0", 
   "description": "Backend for Sagal Gas Delivery App",
   "main": "server.js",
-  "scripts": {    "start": "node your-main-file.js",
-    "dev": "nodemon your-main-file.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js", 
+    "production": "NODE_ENV=production node server.js",
+    "seed": "node seeds/seedAdmin.js",
     "debug": "node --inspect server.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
