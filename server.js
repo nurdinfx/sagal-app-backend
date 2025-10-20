@@ -6,6 +6,8 @@ const socketIo = require('socket.io');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const authRoutes = require('./routes/authRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,113 +16,110 @@ const server = http.createServer(app);
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 10000;
 
-// Enhanced CORS configuration for Render
+// ✅ Real frontend + local dev URLs
+const FRONTEND_URLS = [
+  "http://localhost:3000",       // Next.js local
+  "http://localhost:8081",       // Expo web local
+  "http://localhost:19006",      // Expo Metro bundler
+  "exp://localhost:19000",       // Expo mobile
+  "https://sagal-app-frontend.onrender.com" // Your deployed frontend (if any)
+];
+
+// ✅ CORS configuration — supports local + Render frontend
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman)
     if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://localhost:8081",
-      "http://localhost:19006",
-      "https://your-frontend-app.onrender.com", // Your frontend on Render
-      "exp://localhost:19000"
-    ];
-
-    if (allowedOrigins.indexOf(origin) !== -1 || !isProduction) {
+    if (FRONTEND_URLS.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`CORS blocked: ${origin}`));
     }
   },
-  credentials: true
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// ✅ Rate limiting (protects from abuse)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP'
+  max: 200,
+  message: 'Too many requests from this IP. Please try again later.',
 });
 app.use(limiter);
 
-// Serve static files for admin panel
+// ✅ Serve admin panel if exists
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
-// MongoDB connection with Render compatibility
+// ✅ MongoDB connection (works on Render & local)
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/gas_delivery',
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/sagal_gas_delivery',
+      { useNewUrlParser: true, useUnifiedTopology: true }
     );
-
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
-    // In production, wait and retry
-    if (isProduction) {
-      setTimeout(connectDB, 5000);
-    }
+    if (isProduction) setTimeout(connectDB, 5000);
   }
 };
 
-// Routes
+// ✅ Routes
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 
-// Admin route
+// ✅ Admin route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
 
-// Health check endpoint
+// ✅ Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
-    message: 'Sagal Gas API is running',
+    alive: true,
+    message: '🔥 Sagal Gas API is alive and running!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    environment: isProduction ? 'production' : 'development',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    frontend: FRONTEND_URLS,
   });
 });
 
-// Root endpoint
+// ✅ Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: '🚀 Sagal Gas Delivery API',
+    message: '🚀 Welcome to Sagal Gas Delivery API',
     version: '1.0.0',
+    base_url: 'https://sagal-app-backend.onrender.com',
     endpoints: {
       health: '/api/health',
       orders: '/api/orders',
       auth: '/api/auth',
-      admin: '/admin'
-    }
+      admin: '/admin',
+    },
   });
 });
 
-// Socket.io for real-time updates
+// ✅ Socket.io real-time setup
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://your-frontend-app.onrender.com"],
-    methods: ["GET", "POST"]
-  }
+    origin: FRONTEND_URLS,
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on('connection', (socket) => {
   console.log('✅ Client connected:', socket.id);
-  
+
   socket.on('join_admin', () => {
     socket.join('admin_room');
     console.log('👨‍💼 Admin joined admin room');
@@ -133,12 +132,13 @@ io.on('connection', (socket) => {
 
 app.set('io', io);
 
-// Start server
+// ✅ Start server
 const startServer = async () => {
   await connectDB();
-  
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Backend URL: https://sagal-app-backend.onrender.com`);
+    console.log(`📱 Frontend (Expo): http://localhost:8081`);
     console.log(`📍 Environment: ${isProduction ? 'Production' : 'Development'}`);
   });
 };

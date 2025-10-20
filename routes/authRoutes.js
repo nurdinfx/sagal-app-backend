@@ -1,42 +1,17 @@
 const express = require('express');
+const { login } = require('../controllers/authController');
+
 const router = express.Router();
 
-// Simple login route
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
+router.post('/login', login);
 
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide username and password'
-      });
-    }
-
-    // Simple admin authentication
-    if (username === 'admin' && password === 'admin123') {
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        token: 'admin-token-' + Date.now(),
-        user: {
-          username: 'admin',
-          role: 'admin'
-        }
-      });
-    }
-
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
+// Simple test endpoint to verify auth routes are working
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth routes are working!',
+    timestamp: new Date().toISOString()
+  });
 });
 
 module.exports = router;

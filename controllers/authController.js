@@ -18,6 +18,8 @@ exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('🔐 Login attempt for:', username);
+
     // Check if username and password exist
     if (!username || !password) {
       return res.status(400).json({
@@ -30,6 +32,7 @@ exports.login = async (req, res) => {
     if (username === adminUser.username && password === adminUser.password) {
       const token = signToken(adminUser._id);
 
+      console.log('✅ Login successful for admin');
       return res.json({
         success: true,
         token,
@@ -41,6 +44,7 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log('❌ Invalid credentials for:', username);
     // If credentials don't match
     return res.status(401).json({
       success: false,
@@ -48,7 +52,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('🚨 Login controller error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error during login'
@@ -87,6 +91,7 @@ exports.protect = async (req, res, next) => {
     });
 
   } catch (error) {
+    console.error('🚨 Token verification error:', error);
     res.status(401).json({
       success: false,
       message: 'Invalid token. Please log in again.'
