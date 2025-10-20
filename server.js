@@ -7,7 +7,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Import routes
+// Import routes (ONCE - at the top)
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
@@ -26,7 +26,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:19000",
   "exp://localhost:19000",
   "exp://10.238.151.107:8081",
-  "https://sagal-app.onrender.com" // Your actual Render URL
+  "https://sagal-app.onrender.com"
 ];
 
 // ✅ Enhanced CORS configuration
@@ -100,7 +100,7 @@ const connectDB = async () => {
   }
 };
 
-// ✅ Routes (FIXED: No duplicates)
+// ✅ Routes (ONCE - no duplicates)
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
