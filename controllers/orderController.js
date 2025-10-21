@@ -148,5 +148,3 @@ exports.getAllOrders = async (req, res) => {
     });
   }
 };
-
-// ... keep all your other existing methods (searchOrders, getOrderById, updateOrderStatus, etc.)
