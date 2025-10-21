@@ -114,7 +114,7 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// ... rest of your controller methods remain the same
+// Get all orders (Admin only)
 exports.getAllOrders = async (req, res) => {
   try {
     const { status, page = 1, limit = 50 } = req.query;
@@ -145,6 +145,181 @@ exports.getAllOrders = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch orders'
+    });
+  }
+};
+
+// Get order by ID
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    console.error('❌ Get order by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order'
+    });
+  }
+};
+
+// Update order status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'preparing', 'on_the_way', 'delivered', 'cancelled'];
+    
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid status is required'
+      });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Emit real-time update
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admin_room').emit('order_updated', order);
+    }
+
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error('❌ Update order status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update order status'
+    });
+  }
+};
+
+// Get order statistics
+exports.getOrderStats = async (req, res) => {
+  try {
+    const totalOrders = await Order.countDocuments();
+    const pendingOrders = await Order.countDocuments({ status: 'pending' });
+    const confirmedOrders = await Order.countDocuments({ status: 'confirmed' });
+    const preparingOrders = await Order.countDocuments({ status: 'preparing' });
+    const onTheWayOrders = await Order.countDocuments({ status: 'on_the_way' });
+    const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
+    const cancelledOrders = await Order.countDocuments({ status: 'cancelled' });
+
+    // Today's orders
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayOrders = await Order.countDocuments({
+      createdAt: { $gte: today }
+    });
+
+    // Total revenue
+    const revenueResult = await Order.aggregate([
+      { $match: { status: 'delivered' } },
+      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+
+    res.json({
+      success: true,
+      data: {
+        total: totalOrders,
+        pending: pendingOrders,
+        confirmed: confirmedOrders,
+        preparing: preparingOrders,
+        onTheWay: onTheWayOrders,
+        delivered: deliveredOrders,
+        cancelled: cancelledOrders,
+        today: todayOrders,
+        revenue: totalRevenue
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get order stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order statistics'
+    });
+  }
+};
+
+// Delete order
+exports.deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Delete order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete order'
+    });
+  }
+};
+
+// Search orders
+exports.searchOrders = async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    const orders = await Order.find({
+      $or: [
+        { orderNumber: { $regex: q, $options: 'i' } },
+        { customerName: { $regex: q, $options: 'i' } },
+        { phoneNumber: { $regex: q, $options: 'i' } },
+        { address: { $regex: q, $options: 'i' } }
+      ]
+    }).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: orders
+    });
+  } catch (error) {
+    console.error('❌ Search orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search orders'
     });
   }
 };
